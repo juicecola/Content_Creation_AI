@@ -1,5 +1,6 @@
 
 import os
+import json
 import streamlit as st
 from pipeline import run_content_pipeline, initialize_vertexai
 
@@ -13,11 +14,16 @@ st.set_page_config(
 # --- Initialization ---
 @st.cache_resource
 def init_gcp():
-    # Point to your credentials file
-    credentials_path = "google_credentials.json"
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+    # Use Streamlit's secrets for authentication
+    creds_json = st.secrets["GCP_CREDENTIALS"]
     
-    # Now initialize Vertex AI
+    # Write the credentials to a temporary file for the library to find
+    with open("temp_credentials.json", "w") as f:
+        f.write(creds_json)
+    
+    import os
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "temp_credentials.json"
+
     initialize_vertexai()
 
 init_gcp()
