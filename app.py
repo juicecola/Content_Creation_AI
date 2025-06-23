@@ -1,8 +1,9 @@
 
-import os
-import json
 import streamlit as st
-from pipeline import run_content_pipeline, initialize_vertexai
+import json
+import os
+from pipeline import run_content_pipeline
+from pipeline import initialize_vertexai
 
 # --- Page Configuration ---
 st.set_page_config(
@@ -14,16 +15,27 @@ st.set_page_config(
 # --- Initialization ---
 @st.cache_resource
 def init_gcp():
-    # Use Streamlit's secrets for authentication
-    creds_json = st.secrets["GCP_CREDENTIALS"]
-    
-    # Write the credentials to a temporary file for the library to find
-    with open("temp_credentials.json", "w") as f:
-        f.write(creds_json)
-    
-    import os
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "temp_credentials.json"
+    # Reconstruct the credentials from individual secrets
+    creds_dict = {
+        "type": st.secrets.gcp_service_account.type,
+        "project_id": st.secrets.gcp_service_account.project_id,
+        "private_key_id": st.secrets.gcp_service_account.private_key_id,
+        "private_key": st.secrets.gcp_service_account.private_key.replace('\\n', '\n'),
+        "client_email": st.secrets.gcp_service_account.client_email,
+        "client_id": st.secrets.gcp_service_account.client_id,
+        "auth_uri": st.secrets.gcp_service_account.auth_uri,
+        "token_uri": st.secrets.gcp_service_account.token_uri,
+        "auth_provider_x509_cert_url": st.secrets.gcp_service_account.auth_provider_x509_cert_url,
+        "client_x509_cert_url": st.secrets.gcp_service_account.client_x509_cert_url
+    }
 
+    # Write the reconstructed dictionary to the temp file as a valid JSON string
+    with open("temp_credentials.json", "w") as f:
+        json.dump(creds_dict, f)
+
+    # Point the environment variable to the new file
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "temp_credentials.json"
+    
     initialize_vertexai()
 
 init_gcp()
